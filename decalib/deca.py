@@ -158,7 +158,7 @@ class DECA(nn.Module):
 
     # @torch.no_grad()
     def decode(self, codedict, rendering=True, iddict=None, vis_lmk=True, return_vis=True, use_detail=True,
-                render_orig=False, original_image=None, tform=None):
+                render_orig=False, original_image=None, tform=None, origin_vert=None, asym_face=None):
         images = codedict['images']
         batch_size = images.shape[0]
         
@@ -194,7 +194,7 @@ class DECA(nn.Module):
             images = original_image
         else:
             h, w = self.image_size, self.image_size
-            background = None
+            background = original_image
 
         if rendering:
             # ops = self.render(verts, trans_verts, albedo, codedict['light'])
@@ -234,7 +234,22 @@ class DECA(nn.Module):
             
             ## extract texture
             ## TODO: current resolution 256x256, support higher resolution, and add visibility
-            uv_pverts = self.render.world2uv(trans_verts)
+            if origin_vert is not None:
+                origin_uv_pverts = self.render.world2uv(origin_vert)
+                uv_pverts = self.render.world2uv(trans_verts)
+                N, C, H, W = uv_pverts.shape
+                print(asym_face)
+                if asym_face%3 == 1: # upper face
+                    uv_pverts[:,:,:H//2,:] = origin_uv_pverts[:,:,:H//2,:]
+                elif asym_face%3 == 2: # lower face
+                    uv_pverts[:,:,H//2:,:] = origin_uv_pverts[:,:,H//2:,:]
+
+                if asym_face//3 == 1: # left face
+                    uv_pverts[:,:,:,:W//2] = origin_uv_pverts[:,:,:,:W//2]
+                elif asym_face//3 == 2: # right face
+                    uv_pverts[:,:,:,W//2:] = origin_uv_pverts[:,:,:,W//2:]
+            else:
+                uv_pverts = self.render.world2uv(trans_verts)
             uv_gt = F.grid_sample(images, uv_pverts.permute(0,2,3,1)[:,:,:,:2], mode='bilinear', align_corners=False)
             if self.cfg.model.use_tex:
                 ## TODO: poisson blending should give better-looking results
@@ -253,8 +268,12 @@ class DECA(nn.Module):
                 'shape_images': shape_images,
                 'shape_detail_images': shape_detail_images
             }
+            ops = self.render(verts, trans_verts, uv_texture_gt, h=h, w=w, background=background)
             if self.cfg.model.use_tex:
                 visdict['rendered_images'] = ops['images']
+
+            if origin_vert is None:
+                opdict['origin_vert'] = trans_verts
 
             return opdict, visdict
 
