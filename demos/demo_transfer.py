@@ -29,11 +29,11 @@ from decalib.utils.config import cfg as deca_cfg
 def main(args):
     savefolder = args.savefolder
     device = args.device
-    os.makedirs(savefolder, exist_ok=True)
 
     # load test images 
-    testdata = datasets.TestData(args.image_path, iscrop=args.iscrop, face_detector=args.detector)
-    expdata = datasets.TestData(args.exp_path, iscrop=args.iscrop, face_detector=args.detector)
+    print(args.image_path)
+    testdata = datasets.TestData(args.image_path, iscrop=args.iscrop, face_detector=args.detector, scale=1)
+    expdata = datasets.TestData(args.exp_path, iscrop=args.iscrop, face_detector=args.detector, scale=1)
 
     # run DECA
     deca_cfg.model.use_tex = args.useTex
@@ -43,7 +43,7 @@ def main(args):
     # identity reference
     i = 0
     name = testdata[i]['imagename']
-    savepath = '{}/{}.jpg'.format(savefolder, name)
+    os.makedirs(os.path.join(savefolder,name), exist_ok=True)
     images = testdata[i]['image'].to(device)[None,...]
     with torch.no_grad():
         id_codedict = deca.encode(images)
@@ -59,10 +59,10 @@ def main(args):
     # transfer exp code
 
     id_codedict_copy = id_codedict.copy()
-    asym_face = np.random.randint(9)
+    asym_face = 0
     for i in range(11):
         id_codedict = id_codedict_copy.copy()
-        id_codedict['pose'][:,3:] = id_codedict['pose'][:,3:] * (1-i/10) + exp_codedict['pose'][:,3:] * (i/10)
+        # id_codedict['pose'][:,3:] = id_codedict['pose'][:,3:] * (1-i/10) + exp_codedict['pose'][:,3:] * (i/10)
         id_codedict['exp'] = id_codedict['exp'] * (1-i/10) + exp_codedict['exp'] * (i/10)
         if i == 0:
             transfer_opdict, transfer_visdict = deca.decode(id_codedict)
@@ -89,7 +89,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DECA: Detailed Expression Capture and Animation')
 
-    parser.add_argument('-i', '--image_path', default='TestSamples/examples/IMG_0392_inputs.jpg', type=str,
+    parser.add_argument('-i', '--image_path', default='TestSamples/examples/test_0002_aligned.jpg', type=str,
                         help='path to input image')
     parser.add_argument('-e', '--exp_path', default='TestSamples/exp/8.jpg', type=str, 
                         help='path to expression')
