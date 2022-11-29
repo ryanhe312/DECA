@@ -243,11 +243,15 @@ class DECA(nn.Module):
                     uv_pverts[:,:,:H//2,:] = origin_uv_pverts[:,:,:H//2,:]
                 elif asym_face%3 == 2: # lower face
                     uv_pverts[:,:,H//2:,:] = origin_uv_pverts[:,:,H//2:,:]
+                else:
+                    uv_pverts = origin_uv_pverts
 
                 if asym_face//3 == 1: # left face
                     uv_pverts[:,:,:,:W//2] = origin_uv_pverts[:,:,:,:W//2]
                 elif asym_face//3 == 2: # right face
                     uv_pverts[:,:,:,W//2:] = origin_uv_pverts[:,:,:,W//2:]
+                else:
+                    uv_pverts = origin_uv_pverts
             else:
                 uv_pverts = self.render.world2uv(trans_verts)
             uv_gt = F.grid_sample(images, uv_pverts.permute(0,2,3,1)[:,:,:,:2], mode='bilinear', align_corners=False)
