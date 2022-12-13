@@ -83,13 +83,21 @@ def main(args):
             if vis_name not in visdict.keys():
                 continue
             image  =util.tensor2image(visdict[vis_name][0])
-            cv2.imwrite(os.path.join(savefolder, name, name + '_' + exp_name + '_level_' + str(i) +'.jpg'), util.tensor2image(visdict[vis_name][0]))
+            cv2.imwrite(os.path.join(savefolder, name, name + '_' + exp_name + '_level_' + str(i) +'.png'), util.tensor2image(visdict[vis_name][0]))
+
+        if args.saveObj:
+            deca.save_obj(os.path.join(savefolder, name, name + '_' + exp_name + '_level_' + str(i) + '.obj'), transfer_opdict) 
+
+        if args.saveMat:
+            numpy_dict = dict(shape=id_codedict['shape'].cpu().numpy(),exp=id_codedict['exp'].cpu().numpy(),pose=id_codedict['pose'].cpu().numpy())
+            np.save(os.path.join(savefolder, name, name + '_' + exp_name + '_level_' + str(i)),numpy_dict) 
+
         print(f'-- please check the results in {savefolder}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DECA: Detailed Expression Capture and Animation')
 
-    parser.add_argument('-i', '--image_path', default='TestSamples/examples/test_0002_aligned.jpg', type=str,
+    parser.add_argument('-i', '--image_path', default='TestSamples/examples/IMG_0392_inputs.jpg', type=str,
                         help='path to input image')
     parser.add_argument('-e', '--exp_path', default='TestSamples/exp/8.jpg', type=str, 
                         help='path to expression')
@@ -106,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument('--detector', default='fan', type=str,
                         help='detector for cropping face, check detectos.py for details' )
     # save
-    parser.add_argument('--extractTex', default=True, type=lambda x: x.lower() in ['true', '1'],
+    parser.add_argument('--extractTex', default=False, type=lambda x: x.lower() in ['true', '1'],
                         help='whether to extract texture from input image as the uv texture map, set false if you want albeo map from FLAME mode' )
     parser.add_argument('--useTex', default=True, type=lambda x: x.lower() in ['true', '1'],
                         help='whether to use FLAME texture model to generate uv texture map, \
